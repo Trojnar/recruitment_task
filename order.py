@@ -31,6 +31,10 @@ class Order:
             # Don't do anything
             pass
         elif file.is_file():
+            if not self.orders:
+                # If there is the file and there is no orders in memory, initialize
+                # orders form the file.
+                self.load_from_csv()
             self.add_record()
         else:
             self.save()
@@ -92,6 +96,7 @@ class Order:
         self.__quantity = new_quantity
 
     def get_dict(self):
+        """Return dictionary representation of an order"""
         return {
             "Id": self.id,
             "Order": self.order,
@@ -100,19 +105,36 @@ class Order:
             "Quantity": self.quantity,
         }
 
+    def add_record(self):
+        """Add record to the existing csv file."""
+        header = ["Id", "Order", "Type", "Price", "Quantity"]
+        with open(self.filename, "a") as file:
+            writer = csv.DictWriter(file, fieldnames=header)
+            writer.writerow(self.get_dict())
+
     @classmethod
     def save(cls):
+        """Save all instances to csv file"""
         header = ["Id", "Order", "Type", "Price", "Quantity"]
-        with open("orders.csv", "w") as file:
+        with open(cls.filename, "w") as file:
             writer = csv.DictWriter(file, fieldnames=header)
             writer.writeheader()
             writer.writerows(cls._get_dict_list())
 
-    def add_record(self):
-        header = ["Id", "Order", "Type", "Price", "Quantity"]
-        with open("orders.csv", "a") as file:
-            writer = csv.DictWriter(file, fieldnames=header)
-            writer.writerow(self.get_dict())
+    @classmethod
+    def load_from_csv(cls):
+        """Load orders from cls file"""
+        with open(cls.filename) as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                cls(
+                    row["Id"],
+                    row["Order"],
+                    row["Type"],
+                    float(row["Price"]),
+                    int(row["Quantity"]),
+                    init_from_file=True,
+                )
 
     @classmethod
     def _get_dict_list(cls):
@@ -123,6 +145,7 @@ class Order:
 
     @classmethod
     def display(cls):
+        """Display frame of orders."""
         cls.orders.sort(key=lambda x: x.price)
         d = pd.DataFrame.from_records([o.get_dict() for o in cls.orders])
         print(d)
@@ -135,17 +158,3 @@ class Order:
 
     def __str__(self):
         return f"{self.order} {self.o_type} {self.price} {self.quantity}"
-
-    @classmethod
-    def load_from_csv(cls):
-        with open(cls.filename) as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                cls(
-                    row["Id"],
-                    row["Order"],
-                    row["Type"],
-                    float(row["Price"]),
-                    int(row["Quantity"]),
-                    init_from_file=True,
-                )
